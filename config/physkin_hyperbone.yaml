@@ -1,0 +1,215 @@
+defaults:
+  - defaults.yaml
+  - override hydra/job_logging: custom # Disable logging to console, it is too noisy
+  - _self_ # Must be last to override defaults.yaml (and silences warning)
+
+EXP_NAME: default_experiment
+
+DATA_ROOT: <PATH_TO_YOUR_DATA_ROOT>
+LOCAL_DATA_ROOT: ${DATA_ROOT}/data
+
+
+body:
+  invert_face_normals: True
+  invert_vertex_normals: True
+  global_normalization: False # do not normalize
+  global_y_translation: -0.37
+  global_scale: 178.0
+
+  # name: 3DBiCar
+  # custom_obj_path: ${LOCAL_DATA_ROOT}/bodies/3DBiCar/rabit_SMPL_A_scaled.obj
+  # verts_data_path: ${LOCAL_DATA_ROOT}/bodies/3DBiCar/
+  # rigid_verts_parent_idx: []
+  # ignore: ['tail'] # []
+
+  name: avatar
+  # verts_data_path: ${LOCAL_DATA_ROOT}/bodies/avatars/avatars_body_data.npy
+  verts_data_path: ${LOCAL_DATA_ROOT}/bodies/avatars/
+  custom_obj_path: ${LOCAL_DATA_ROOT}/bodies/avatars/average_mesh/average_tri.obj
+  rigid_verts_parent_idx: [1396, 4580, 2446, 5772] # [left_hand, right_hand, left_foot, right_foot]
+
+garment:
+  name: bot00232_2 # scene name
+  fixed_garment_idx: 15
+  class_type: upper
+  garment_type: mix_single_garments
+  pattern_embeddings_path: ${LOCAL_DATA_ROOT}/garments/${garment.garment_type}_pattern_embeddings.pt
+  root_dir: ${LOCAL_DATA_ROOT}/garments/${garment.garment_type}/
+  pinned_verts_indices: []
+  invert_face_normals: True
+  invert_vertex_normals: True
+  skin_weight_transfer_method: geodesic # [default, geodesic]
+  hard_attach_bones: False
+  cached_metadata_path: '${LOCAL_DATA_ROOT}/${garment.garment_type}_${body.name}_metadata_${garment.fixed_garment_idx}garmentID_${train.bones_lod_levels[0]}bones_${train.skinwt_influence_k}infK.pt'
+  use_cached_metadata: False
+
+shape_embedder_config:
+  in_dim: 6
+  max_token_len:
+  hidden_dim: 64
+  hidden_layers: 4
+  out_dim: 64
+  pos_enc: fourier # [none, fourier]
+  pos_enc_dim: 10
+
+garment_embedder_config:
+  in_dim: 3
+  max_token_len:
+  hidden_dim: 64
+  hidden_layers: 8
+  out_dim: 0
+  pos_enc: laplacian # [none, fourier, laplacian, fourier_laplacian]
+  pos_enc_dim: 16 # [0, 16, 32, 64, 128, 256]
+
+bone_feature_extractor_config:
+  in_dim:
+  hidden_dim:
+  hidden_layers: 4
+  out_dim: 3
+  pos_enc: none # [none, fourier]
+  pos_enc_dim: 0
+
+vertex_feature_extractor_config:
+  in_dim:
+  hidden_dim:
+  hidden_layers: 4
+  out_dim: 64
+  pos_enc: none # [none, fourier]
+  pos_enc_dim: 0
+
+
+hypermodulator:
+  shared_hidden_features: 512
+  shared_hidden_layers: 4
+  shape_proj_dim: 64
+  shape_latent_type: enc # [enc, dec, pca]
+  predict_shape_deltas: 2 # [0: Disable, 1: Skinwts Deltas, 2: Skinwts Deltas + Rest Verts Deltas]
+  use_pattern_embeddings: False
+  pattern_proj_dim: 64
+  mesh_proj_dim: 64
+  use_graph_transformer: False
+  graph_transformer_hidden_dim: 64
+  graph_transformer_hidden_layers: 4
+  graph_transformer_pe_dim: 16
+  graph_pe_type: 'laplacian_eigenvecs' # ['random_walk', 'laplacian_eigenvecs', 'none']
+  graph_attn_type: multihead # [multihead, perfromer]
+  graph_attn_redraw_interval: #1000 [None if using multihead attention]
+  graph_pool_k: 64 # -1 for global_add_pool
+  graph_use_panels_xyz: True
+  use_seperate_modheads: False
+  modheads_hidden_layers: 4
+  bonefeats_hidden_layers: 4
+  vertsfeats_hidden_layers: 4
+  residual_blocks: False
+  drape_cond_dim: 3 # [xyz]
+  drape_cond_type: inject_rest # [input, inject_rest, inject_panels, none]
+  drape_mode: none # [lbs, nn, none]
+
+pose_modulator:
+  type: mlp
+  hidden_features: 512
+  hidden_layers: 4
+  input_dim: 120
+
+model:
+  type: mlp # [mlp, siren]
+  hidden_features: 128
+  hidden_layers:  4
+  input_type: 'transformations'
+  inp_dim: 9
+
+vertex_model:
+  type: diffusion_net # [mlp, siren, diffusion_net]
+  hidden_features: 128
+  hidden_layers:  4
+
+
+infer:
+  run_inference: False
+  remesh: True
+  remesh_tag: 'edit2'
+  max_num_garments: 10
+  profiling: False
+  visualize_inference: True
+
+train:
+  ddp: True
+  stage: 'stage_1'
+  continue_from_last_checkpoint: False
+  optimize_skinning_weights: False
+  use_vertex_model: False
+  joint_training: False
+  material_change: False
+  epochs: 200000
+  pose_interpolation_start: 1000
+  pose_interpolation_interval: 250
+  hypermodulator_start_epoch: 0
+  freeze_garment_encoder: False
+  optimize_skinning_weights_start_epoch: 600000
+  vertex_model_start_epoch: 600000
+  material_change_start_epoch: 600000
+  gradient_clipping: False
+  panels_as_rest: False
+  add_noise: False
+  learning_rate: 1e-4
+  force_overwrite: False
+  timestamp: latest
+  resume_step: latest
+  timestamp_prefix: '2025'
+  prediction_type: delta_posed_ortho6d # [delta_unposed_ortho6d, delta_posed_ortho6d]
+  vertex_offset_type: after_lbs # [before_lbs, after_lbs]
+  dataset_type: shapes # [random, animation, simulation, shapes]
+  canonical_pose_only: False
+  fixed_root_rotation: True # will only disable rotation along y-axis
+  fixed_root_translation: True
+  garment_specific_pose_masking: True
+  first_k_shapes: 400
+  max_num_garments: 1 # -1 for including all garments
+  train_split: 0.8
+  train_sampling_type: predefined # [random, predefined]
+  garment_sampling_type: paired #[random, paired, rank_based]
+  custom_garment_bones: True
+  random_bones_placement: True
+  bones_lod_levels: [128] #[1024, 512, 256, 128, 64, 32]
+  skinwt_spread: 0.75
+  skinwt_influence_k: 32
+  max_num_pin_bones: 0 # -1 for automatic estimation, 0 for no-pinning
+  max_num_pin_verts: 0 # -1 for including all pinning vertices
+  estimate_pinning_bones: False
+  estimate_pinning_vertices: False
+  body_pinning_info: False
+  visualize_training: False
+  alpha_canonical_pose: 0.0
+  loss_weight:
+    phys: 1
+    delta_regularizer: 0.0
+
+  num_train_eval_samples: 1 # set as world_size
+  num_test_eval_samples: 1 # set as world_size
+  log_every_n_steps: 100
+  checkpoint_every_n_epochs: 500
+
+  body_contact:
+    # How much interpenetration to consider valid
+    # Smaller values help push the clothing out of the body in the right direction, but may be slower to train.
+    max_interpenetration_tolerance: 2.0 # in cm
+    # How much to pad when computing proximity such that larger interpenetrations are not missed.
+    # This mostly depends on mesh triangle size. Smaller values ought to improve performance, so long as contacts are not missed.
+    proximity_padding: 0.2 # in cm
+
+  motion_batch_size: 32
+  max_train_samples: 1024 # -1 for including all samples
+  motion_window_size: 1 # 1 for quasi-static training
+  pose_dataset_path: ${LOCAL_DATA_ROOT}/poses/50k_poses.npy  # Path to the motion or pose dataset
+  load_random_poses: True
+  motion_sequences_dataset_path: ${LOCAL_DATA_ROOT}/animation_sequences/all_motions.npz
+
+  poseanim_dataset_path: ${LOCAL_DATA_ROOT}/animation_sequences/50k_poses.npy  # Path to the animation sequence for testing only
+
+  scene_path: ${LOCAL_DATA_ROOT}/processed_assets/${garment.name}.npz
+
+  config_path: ./config/physkin_${garment.class_type}.jsonc
+
+  output_path: ${DATA_ROOT}/output/${EXP_NAME}
+  debug_path: ${DATA_ROOT}/debug/${EXP_NAME}
+  video_data_path: ${DATA_ROOT}/video_results/${EXP_NAME}/

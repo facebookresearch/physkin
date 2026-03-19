@@ -1,0 +1,61 @@
+# Houdini files
+backup/
+hip/stash/
+
+# Video recordings
+video/
+
+# Created directories
+out/
+outputs/
+assets/
+cache/
+export/
+
+# Assets are to be downloaded manually. See readme.
+third-party/
+
+# Python cache
+__pycache__/
+
+# Build directory
+build/
+
+# Visual studio (code) configs
+.vs/
+.vscode/
+
+training_snapshots/
+output/
+debug/
+data/
+video_results/
+
+# Profiling outputs
+profile_output*
+*.lprof
+
+# Generated files
+*.ply
+*.png
+*.jpg
+*.jpeg
+*.obj
+*.mtl
+*.glb
+*.gltf
+*.zip
+*.usd
+*.usdz
+*.mp4
+*.webm
+*.avi
+*.out
+*.pt
+
+# Python virtual environment
+.venv*
+
+# Ignore CLAUDE.md files
+CLAUDE.md
+.claude/
