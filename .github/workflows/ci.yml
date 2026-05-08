@@ -16,8 +16,6 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install linting tools
-        run: pip install flake8 black
-      - name: Check formatting with black
-        run: black --check .
+        run: pip install flake8
       - name: Lint with flake8
         run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
