@@ -1,5 +1,5 @@
 # Core Deep Learning
-torch==2.8.0
+torch==2.6.0+cu126
 torchvision==0.21.0+cu126
 torchaudio==2.6.0+cu126
 torchtnt==0.2.4
