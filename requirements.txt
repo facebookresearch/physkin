@@ -35,7 +35,7 @@ pykdtree==1.4.1
 # 3D Processing and Visualization
 open3d==0.19.0
 polyscope==2.3.0
-usd-core==25.2.post1
+usd-core==26.5
 pymeshlab
 
 # Computer Vision
